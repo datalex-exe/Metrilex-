@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Adaptive AI Assess{% endblock %} - AI Testing & Analysis</title>
+    <!-- Core CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav>
+        <a href="/" class="logo">
+            <span style="color: #f59e0b; margin-right: 0.25rem; font-size: 1.5rem; filter: drop-shadow(0 0 8px rgba(245,158,11,0.5));">⚡</span>
+            <span class="text-gradient" style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1.6rem; letter-spacing: -0.5px;">Metrilex</span>
+        </a>
+        <div class="nav-links">
+            {% if session.get('user_id') %}
+            <a href="{{ url_for('dashboard') }}"
+                class="nav-link {% if request.path == url_for('dashboard') %}active{% endif %}">Dashboard</a>
+            <a href="{{ url_for('setup_test') }}"
+                class="nav-link {% if request.path == url_for('setup_test') %}active{% endif %}">New Test</a>
+            <div style="display: flex; align-items: center; gap: 0.75rem; padding-left: 0.5rem; border-left: 1px solid var(--border-color); margin-left: 0.5rem;">
+                <span style="font-size: 0.88rem; font-weight: 600; color: var(--text-primary);">{{ session.get('user_name') }}</span>
+                <a href="{{ url_for('logout') }}" class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.4rem 0.85rem; border-radius: 8px; color: var(--color-error); border-color: rgba(239, 68, 68, 0.2); background: rgba(239, 68, 68, 0.03);">Logout</a>
+            </div>
+            {% else %}
+            <a href="{{ url_for('login') }}" class="btn btn-primary" style="font-size: 0.85rem; padding: 0.5rem 1.25rem; border-radius: 8px;">Login Portal</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- Main Workspace -->
+    <main>
+        <!-- Flask Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages-container">
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category if category != 'error' else 'danger' }} animate-fade" style="gap: 1rem;">
+                <span style="display: flex; align-items: center;">
+                    {% if category == 'success' %}
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M10 0C4.48 0 0 4.48 0 10C0 15.52 4.48 20 10 20C15.52 20 20 15.52 20 10C20 4.48 15.52 0 10 0ZM8 15L3 10L4.41 8.59L8 12.17L15.59 4.58L17 6L8 15Z" fill="#10b981"/>
+                    </svg>
+                    {% elif category == 'error' %}
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M10 0C4.48 0 0 4.48 0 10C0 15.52 4.48 20 10 20C15.52 20 20 15.52 20 10C20 4.48 15.52 0 10 0ZM11 15H9V13H11V15ZM11 11H9V5H11V11Z" fill="#ef4444"/>
+                    </svg>
+                    {% else %}
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M10 0C4.48 0 0 4.48 0 10C0 15.52 4.48 20 10 20C15.52 20 20 15.52 20 10C20 4.48 15.52 0 10 0ZM11 15H9V9H11V15ZM11 7H9V5H11V7Z" fill="#38bdf8"/>
+                    </svg>
+                    {% endif %}
+                </span>
+                <div>{{ message }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div style="border-top: 1px solid var(--border-color); margin-top: 5rem; padding-top: 2.5rem; padding-bottom: 2.5rem; text-align: center; font-size: 0.85rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.75rem;">
+            <div>
+                &copy; 2026 <strong>Metrilex</strong>. All Rights Reserved by <strong>Datalex</strong>.
+            </div>
+            <div style="display: flex; justify-content: center; gap: 1.5rem; font-weight: 500;">
+                <a href="#" style="color: var(--text-secondary); text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Privacy Policy</a>
+                <a href="#" style="color: var(--text-secondary); text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Terms of Service</a>
+                <a href="mailto:datalex.exe@gmail.com" style="color: var(--text-secondary); text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Support: datalex.exe@gmail.com</a>
+            </div>
+        </div>
+    </footer>
+
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

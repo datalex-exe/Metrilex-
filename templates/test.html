@@ -1,0 +1,544 @@
+{% extends 'base.html' %}
+
+{% block title %}Active Test ({{ test.subject }}){% endblock %}
+
+{% block head %}
+<style>
+/* Options Interaction */
+.option-card {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.option-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(139, 92, 246, 0.3);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.option-card.checked {
+    border-color: #8b5cf6;
+    background: rgba(139, 92, 246, 0.05);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.15);
+}
+
+/* Question Navigation Grid */
+.nav-grid-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    font-family: 'Outfit', sans-serif;
+}
+
+.nav-grid-btn:hover {
+    border-color: #8b5cf6;
+    color: var(--text-primary);
+    background: rgba(139, 92, 246, 0.05);
+    transform: translateY(-1px);
+}
+
+.nav-grid-btn.active {
+    border-color: #8b5cf6;
+    background: rgba(139, 92, 246, 0.08);
+    color: var(--text-primary);
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
+}
+
+.nav-grid-btn.answered {
+    background: var(--gradient-primary);
+    border-color: transparent;
+    color: white;
+}
+
+.nav-grid-btn.bookmarked {
+    background: #f59e0b;
+    border-color: transparent;
+    color: white;
+}
+
+.nav-grid-btn.answered.bookmarked {
+    background: linear-gradient(135deg, #8b5cf6 0%, #f59e0b 100%);
+}
+
+/* Bookmark Action button */
+.bookmark-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.bookmark-btn:hover {
+    color: #f59e0b;
+    border-color: rgba(245, 158, 11, 0.3);
+    background: rgba(245, 158, 11, 0.05);
+}
+
+.bookmark-btn.active {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: #f59e0b;
+    color: #f59e0b;
+}
+
+.bookmark-btn.active svg {
+    fill: #f59e0b;
+}
+
+.mobile-only {
+    display: block;
+}
+
+@media (min-width: 992px) {
+    .mobile-only {
+        display: none !important;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="animate-fade" style="max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem;">
+    
+    <!-- Test Info Bar -->
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h2 style="font-size: 1.5rem; font-weight: 700;">Subject: <span class="text-gradient">{{ test.subject }}</span></h2>
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">Adaptive Diagnostic Assessment</p>
+        </div>
+        
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <!-- Countdown Timer -->
+            <div style="display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 1.1rem; font-family: 'Outfit', sans-serif; background: rgba(255,255,255,0.03); color: var(--text-primary); border: 1px solid var(--border-color); padding: 0.5rem 1rem; border-radius: 8px; transition: all 0.3s;" id="timer-box">
+                <span>⏱️</span>
+                <span id="timer-countdown">45:00</span>
+            </div>
+            
+            <div style="font-weight: 700; font-size: 1.1rem; font-family: 'Outfit', sans-serif; background: rgba(255,255,255,0.03); padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                Q: <span id="current-question-num" style="color: #8b5cf6;">1</span> / {{ questions|length }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Progression Bar -->
+    <div class="test-progression-bar">
+        <div class="progression-line-fill" id="progress-bar-fill" style="width: 0%;"></div>
+        
+        <div class="progression-step active" id="step-beg">
+            <div class="step-indicator">1</div>
+            <span class="step-label">Beginner</span>
+        </div>
+        
+        <div class="progression-step" id="step-int">
+            <div class="step-indicator">2</div>
+            <span class="step-label">Intermediate</span>
+        </div>
+        
+        <div class="progression-step" id="step-prof">
+            <div class="step-indicator">3</div>
+            <span class="step-label">Professional</span>
+        </div>
+    </div>
+
+    <!-- Active Question Form -->
+    <form id="assessment-form" action="{{ url_for('submit_test', test_id=test.id) }}" method="POST">
+        {% for q in questions %}
+            {% set outer_loop = loop %}
+            <div class="glass-panel question-container-wrapper" id="question-card-{{ loop.index0 }}" style="display: none;" data-stage="{{ q.stage }}">
+                
+                <!-- Stage Header Indicator -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem;">
+                    {% if q.stage == 'beginner' %}
+                        <span class="badge" style="background: rgba(56, 189, 248, 0.1); color: var(--color-beginner); border: 1px solid rgba(56, 189, 248, 0.2);">Stage 1: Beginner (Easy)</span>
+                    {% elif q.stage == 'intermediate' %}
+                        <span class="badge" style="background: rgba(168, 85, 247, 0.1); color: var(--color-intermediate); border: 1px solid rgba(168, 85, 247, 0.2);">Stage 2: Intermediate (Conceptual)</span>
+                    {% else %}
+                        <span class="badge" style="background: rgba(236, 72, 153, 0.1); color: var(--color-professional); border: 1px solid rgba(236, 72, 153, 0.2);">Stage 3: Professional (Trick Questions)</span>
+                    {% endif %}
+                    
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <button type="button" class="bookmark-btn" id="bookmark-btn-{{ loop.index0 }}" data-index="{{ loop.index0 }}" onclick="toggleBookmark(this.dataset.index)">
+                            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" id="bookmark-icon-{{ loop.index0 }}">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                            </svg>
+                            <span id="bookmark-text-{{ loop.index0 }}">Bookmark</span>
+                        </button>
+                        <span style="font-size: 0.85rem; color: var(--text-secondary);">Question {{ loop.index }} of {{ outer_loop.length }}</span>
+                    </div>
+                </div>
+
+                <!-- Question Text -->
+                <h3 style="font-size: 1.25rem; line-height: 1.5; margin-bottom: 1.5rem; font-weight: 500; font-family: 'Inter', sans-serif;">
+                    {{ q.question_text }}
+                </h3>
+
+                <!-- Options Grid -->
+                <div class="options-container">
+                    <label class="option-card" for="q-{{ q.id }}-A">
+                        <input type="radio" name="answer_{{ q.id }}" id="q-{{ q.id }}-A" value="A" required>
+                        <span class="custom-radio"></span>
+                        <span class="option-letter">A.</span>
+                        <span class="option-text">{{ q.option_a }}</span>
+                    </label>
+
+                    <label class="option-card" for="q-{{ q.id }}-B">
+                        <input type="radio" name="answer_{{ q.id }}" id="q-{{ q.id }}-B" value="B">
+                        <span class="custom-radio"></span>
+                        <span class="option-letter">B.</span>
+                        <span class="option-text">{{ q.option_b }}</span>
+                    </label>
+
+                    <label class="option-card" for="q-{{ q.id }}-C">
+                        <input type="radio" name="answer_{{ q.id }}" id="q-{{ q.id }}-C" value="C">
+                        <span class="custom-radio"></span>
+                        <span class="option-letter">C.</span>
+                        <span class="option-text">{{ q.option_c }}</span>
+                    </label>
+
+                    <label class="option-card" for="q-{{ q.id }}-D">
+                        <input type="radio" name="answer_{{ q.id }}" id="q-{{ q.id }}-D" value="D">
+                        <span class="custom-radio"></span>
+                        <span class="option-letter">D.</span>
+                        <span class="option-text">{{ q.option_d }}</span>
+                    </label>
+                </div>
+            </div>
+        {% endfor %}
+
+        <!-- Navigation Buttons -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
+            <button type="button" class="btn btn-secondary" id="btn-prev" disabled>
+                &larr; Previous Question
+            </button>
+            <button type="button" class="btn btn-primary" id="btn-next">
+                Next Question &rarr;
+            </button>
+            <button type="submit" class="btn btn-primary" id="btn-submit" style="display: none; background: var(--gradient-prof); box-shadow: 0 0 25px rgba(236, 72, 153, 0.25);">
+                Submit Assessment 🚀
+            </button>
+        </div>
+    </form>
+
+    <!-- Question Navigation Map -->
+    <div class="glass-panel" style="margin-top: 1rem; padding: 1.5rem;">
+        <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+            <span>🧭</span> Question Navigation Map
+        </h4>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; font-size: 0.85rem;">
+            <div style="display: flex; align-items: center; gap: 0.35rem;">
+                <span style="width: 12px; height: 12px; border-radius: 3px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); display: inline-block;"></span> Unanswered
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.35rem;">
+                <span style="width: 12px; height: 12px; border-radius: 3px; background: var(--gradient-primary); display: inline-block;"></span> Answered
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.35rem;">
+                <span style="width: 12px; height: 12px; border-radius: 3px; background: #f59e0b; display: inline-block;"></span> Bookmarked
+            </div>
+        </div>
+        <div id="question-nav-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(36px, 1fr)); gap: 0.6rem;">
+            {% for q in questions %}
+                <button type="button" class="nav-grid-btn" id="nav-btn-{{ loop.index0 }}" data-index="{{ loop.index0 }}" onclick="jumpToQuestion(this.dataset.index)">
+                    {{ loop.index }}
+                </button>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Transition to Intermediate -->
+<div class="transition-modal" id="modal-to-intermediate">
+    <div class="glass-panel modal-content" style="border-color: rgba(168, 85, 247, 0.3);">
+        <div class="stage-badge-large" style="background: rgba(168, 85, 247, 0.15); color: var(--color-intermediate); border: 2px solid var(--color-intermediate);">
+            ⚡
+        </div>
+        <h2 style="font-size: 1.75rem; margin-bottom: 0.5rem;">Stage 1 Cleared!</h2>
+        <h3 class="text-gradient-int" style="font-size: 1.2rem; margin-bottom: 1.25rem;">Level Up: Intermediate Stage</h3>
+        <p style="color: var(--text-secondary); line-height: 1.5; margin-bottom: 2rem; font-size: 0.95rem;">
+            You have successfully navigated the foundational concepts. The questions will now become more abstract, conceptual, and require logical problem solving. Take a deep breath!
+        </p>
+        <button type="button" class="btn btn-primary" id="btn-close-int-modal" style="background: var(--gradient-int); width: 100%;">
+            Begin Intermediate Stage &rarr;
+        </button>
+    </div>
+</div>
+
+<!-- Modal: Transition to Professional -->
+<div class="transition-modal" id="modal-to-professional">
+    <div class="glass-panel modal-content" style="border-color: rgba(236, 72, 153, 0.3);">
+        <div class="stage-badge-large" style="background: rgba(236, 72, 153, 0.15); color: var(--color-professional); border: 2px solid var(--color-professional);">
+            🚨
+        </div>
+        <h2 style="font-size: 1.75rem; margin-bottom: 0.5rem;">Stage 2 Cleared!</h2>
+        <h3 class="text-gradient-prof" style="font-size: 1.2rem; margin-bottom: 1.25rem;">Level Up: Professional Stage</h3>
+        <p style="color: var(--text-secondary); line-height: 1.5; margin-bottom: 2rem; font-size: 0.95rem;">
+            <strong>Warning: Entering Trick Question Zone!</strong><br>
+            In this final stage, questions will challenge your lateral thinking. Read every detail carefully before choosing!
+        </p>
+        <button type="button" class="btn btn-primary" id="btn-close-prof-modal" style="background: var(--gradient-prof); width: 100%;">
+            Begin Professional Stage &rarr;
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const questionCards = document.querySelectorAll(".question-container-wrapper");
+        const totalQuestions = questionCards.length;
+        let currentIdx = 0;
+        let bookmarks = new Array(totalQuestions).fill(false);
+        let seenIntModal = false;
+        let seenProfModal = false;
+        let pendingJumpIdx = null;
+        
+        // Dom References
+        const prevBtn = document.getElementById("btn-prev");
+        const nextBtn = document.getElementById("btn-next");
+        const submitBtn = document.getElementById("btn-submit");
+        const currentQNumSpan = document.getElementById("current-question-num");
+        const progressBarFill = document.getElementById("progress-bar-fill");
+        
+        const stepBeg = document.getElementById("step-beg");
+        const stepInt = document.getElementById("step-int");
+        const stepProf = document.getElementById("step-prof");
+        
+        const modalInt = document.getElementById("modal-to-intermediate");
+        const modalProf = document.getElementById("modal-to-professional");
+        
+        const closeIntModalBtn = document.getElementById("btn-close-int-modal");
+        const closeProfModalBtn = document.getElementById("btn-close-prof-modal");
+
+        // Timer references & setups
+        const timerCountdown = document.getElementById("timer-countdown");
+        const timerBox = document.getElementById("timer-box");
+        const timerKey = "test_timer_" + "{{ test.id }}";
+        
+        let timeLeft = localStorage.getItem(timerKey) ? parseInt(localStorage.getItem(timerKey)) : 2700;
+
+        function updateTimer() {
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                localStorage.removeItem(timerKey);
+                timerCountdown.textContent = "00:00";
+                document.getElementById("assessment-form").submit();
+                return;
+            }
+
+            timeLeft--;
+            localStorage.setItem(timerKey, timeLeft.toString());
+
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            const displayTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            timerCountdown.textContent = displayTime;
+
+            if (timeLeft < 300) {
+                timerBox.style.background = "rgba(239, 68, 68, 0.08)";
+                timerBox.style.borderColor = "rgba(239, 68, 68, 0.3)";
+                timerBox.style.color = "#ef4444";
+                timerCountdown.style.fontWeight = "800";
+            }
+        }
+
+        const timerInterval = setInterval(updateTimer, 1000);
+        updateTimer();
+        
+        // Show initial question
+        showQuestion(currentIdx);
+        
+        // Option selection behavior
+        document.querySelectorAll('input[type="radio"]').forEach(radio => {
+            radio.addEventListener("change", function() {
+                const card = radio.closest(".option-card");
+                const questionWrapper = radio.closest(".question-container-wrapper");
+                const qIndex = Array.from(questionCards).indexOf(questionWrapper);
+                
+                // Highlight selected option
+                questionWrapper.querySelectorAll(".option-card").forEach(c => {
+                    c.classList.remove("checked");
+                });
+                card.classList.add("checked");
+
+                // Mark answered in navigation map grid
+                const navBtn = document.getElementById(`nav-btn-${qIndex}`);
+                if (navBtn) {
+                    navBtn.classList.add("answered");
+                }
+                
+                // Auto-advance
+                setTimeout(() => {
+                    const activeRadio = questionWrapper.querySelector('input[type="radio"]:checked');
+                    if (activeRadio && activeRadio.value === radio.value) {
+                        advanceNext();
+                    }
+                }, 350);
+            });
+        });
+
+        // Restore answered states
+        questionCards.forEach((card, idx) => {
+            const answered = card.querySelector('input[type="radio"]:checked');
+            if (answered) {
+                const navBtn = document.getElementById(`nav-btn-${idx}`);
+                if (navBtn) navBtn.classList.add("answered");
+                answered.closest('.option-card').classList.add('checked');
+            }
+        });
+
+        window.jumpToQuestion = function(index) {
+            index = parseInt(index, 10);
+            if (isNaN(index) || index < 0 || index >= totalQuestions) return;
+            
+            // Boundary checks
+            if (index >= 10 && index < 20 && !seenIntModal && currentIdx < 10) {
+                seenIntModal = true;
+                pendingJumpIdx = index;
+                modalInt.style.display = "flex";
+            } else if (index >= 20 && !seenProfModal && currentIdx < 20) {
+                seenProfModal = true;
+                pendingJumpIdx = index;
+                modalProf.style.display = "flex";
+            } else {
+                currentIdx = index;
+                showQuestion(currentIdx);
+            }
+        };
+
+        window.toggleBookmark = function(index) {
+            index = parseInt(index, 10);
+            bookmarks[index] = !bookmarks[index];
+            const btn = document.getElementById(`bookmark-btn-${index}`);
+            const navBtn = document.getElementById(`nav-btn-${index}`);
+            const text = document.getElementById(`bookmark-text-${index}`);
+            
+            if (bookmarks[index]) {
+                btn.classList.add("active");
+                if (navBtn) navBtn.classList.add("bookmarked");
+                if (text) text.textContent = "Bookmarked";
+            } else {
+                btn.classList.remove("active");
+                if (navBtn) navBtn.classList.remove("bookmarked");
+                if (text) text.textContent = "Bookmark";
+            }
+        };
+
+        function showQuestion(index) {
+            // Hide all cards
+            questionCards.forEach(c => c.style.display = "none");
+            
+            // Show active card
+            questionCards[index].style.display = "block";
+            
+            // Update question counts
+            currentQNumSpan.textContent = index + 1;
+            
+            // Disable/Enable Prev
+            prevBtn.disabled = (index === 0);
+            
+            // Toggle Next and Submit
+            if (index === totalQuestions - 1) {
+                nextBtn.style.display = "none";
+                submitBtn.style.display = "inline-flex";
+            } else {
+                nextBtn.style.display = "inline-flex";
+                submitBtn.style.display = "none";
+            }
+
+            // Update active grid element
+            document.querySelectorAll(".nav-grid-btn").forEach(btn => {
+                btn.classList.remove("active");
+            });
+            const activeNavBtn = document.getElementById(`nav-btn-${index}`);
+            if (activeNavBtn) activeNavBtn.classList.add("active");
+            
+            // Update Progress Line & Badges
+            const pct = (index / (totalQuestions - 1)) * 100;
+            progressBarFill.style.width = `${pct}%`;
+            
+            stepBeg.className = "progression-step completed";
+            stepInt.className = "progression-step";
+            stepProf.className = "progression-step";
+            
+            if (index < 10) {
+                stepBeg.className = "progression-step active";
+            } else if (index < 20) {
+                stepBeg.className = "progression-step completed";
+                stepInt.className = "progression-step active";
+            } else {
+                stepBeg.className = "progression-step completed";
+                stepInt.className = "progression-step completed";
+                stepProf.className = "progression-step active";
+            }
+        }
+        
+        function advanceNext() {
+            if (currentIdx < totalQuestions - 1) {
+                jumpToQuestion(currentIdx + 1);
+            }
+        }
+        
+        nextBtn.addEventListener("click", advanceNext);
+        
+        prevBtn.addEventListener("click", function () {
+            if (currentIdx > 0) {
+                showQuestion(currentIdx - 1);
+                currentIdx--;
+            }
+        });
+        
+        // Modal button clicks
+        closeIntModalBtn.addEventListener("click", function() {
+            modalInt.style.display = "none";
+            if (pendingJumpIdx !== null) {
+                currentIdx = pendingJumpIdx;
+                pendingJumpIdx = null;
+            } else {
+                currentIdx++;
+            }
+            showQuestion(currentIdx);
+        });
+        
+        closeProfModalBtn.addEventListener("click", function() {
+            modalProf.style.display = "none";
+            if (pendingJumpIdx !== null) {
+                currentIdx = pendingJumpIdx;
+                pendingJumpIdx = null;
+            } else {
+                currentIdx++;
+            }
+            showQuestion(currentIdx);
+        });
+        
+        // Clear local storage on submit
+        document.getElementById("assessment-form").addEventListener("submit", function() {
+            localStorage.removeItem(timerKey);
+        });
+
+        // Prevent enter key submitting
+        document.getElementById("assessment-form").addEventListener("keydown", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+            }
+        });
+    });
+</script>
+{% endblock %}

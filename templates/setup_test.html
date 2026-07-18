@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block title %}Setup Assessment{% endblock %}
+
+{% block content %}
+<div class="animate-fade" style="max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 2rem;">
+    <div>
+        <h1 style="font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem;">Select Subject Area</h1>
+        <p style="color: var(--text-secondary);">Choose the domain you want to be tested on today.</p>
+    </div>
+
+    <!-- Instructions banner -->
+    <div class="glass-panel" style="border-left: 4px solid var(--color-intermediate);">
+        <h3 style="margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+            <span>ℹ️</span> Cognitive Testing Protocol
+        </h3>
+        <ul style="color: var(--text-secondary); line-height: 1.6; padding-left: 1.25rem; font-size: 0.95rem; display: flex; flex-direction: column; gap: 0.5rem;">
+            <li><strong>3 Stages of Difficulty</strong>: The test progresses sequentially through:
+                <ul style="padding-left: 1rem; margin: 0.25rem 0; display: flex; flex-direction: column; gap: 0.25rem;">
+                    <li><span style="color: var(--color-beginner); font-weight: 600;">Beginner</span>: 10 foundational, easy recall queries.</li>
+                    <li><span style="color: var(--color-intermediate); font-weight: 600;">Intermediate</span>: 10 logical, conceptual, high-level reasoning queries.</li>
+                    <li><span style="color: var(--color-professional); font-weight: 600;">Professional</span>: 10 lateral-thinking trick queries.</li>
+                </ul>
+            </li>
+            <li><strong>Total Length</strong>: 30 multiple-choice questions (10 questions per stage).</li>
+            <li><strong>Timer Limit</strong>: 45 minutes to complete the 30-question assessment. The timer persists across page reloads and will auto-submit when the clock expires.</li>
+            <li><strong>Insights & Charts</strong>: On submission, our analytical engine evaluates your pattern metrics and generates custom recommendations.</li>
+        </ul>
+    </div>
+
+    <!-- Subject cards form -->
+    <form action="{{ url_for('setup_test') }}" method="POST">
+        <input type="hidden" name="subject" id="subject-input" value="Python Programming">
+        
+        <div class="subject-grid">
+            <div class="glass-panel subject-card selected" data-subject="Python Programming">
+                <span class="subject-icon">🐍</span>
+                <h3 style="margin-bottom: 0.5rem;">Python Programming</h3>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; line-height: 1.4;">
+                    Evaluates syntax, lists, sets, functions, variable scopes, and advanced objects.
+                </p>
+            </div>
+            
+            <div class="glass-panel subject-card" data-subject="Mathematics">
+                <span class="subject-icon">📐</span>
+                <h3 style="margin-bottom: 0.5rem;">Mathematics</h3>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; line-height: 1.4;">
+                    Covers arithmetic logic, probability, algebra, geometries, and scaling problems.
+                </p>
+            </div>
+
+            <div class="glass-panel subject-card" data-subject="Science">
+                <span class="subject-icon">🧪</span>
+                <h3 style="margin-bottom: 0.5rem;">Science</h3>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; line-height: 1.4;">
+                    Tests physics laws, chemical reactions, cell biology, and vacuum physics.
+                </p>
+            </div>
+
+            <div class="glass-panel subject-card" data-subject="Aptitude & Logic">
+                <span class="subject-icon">🧩</span>
+                <h3 style="margin-bottom: 0.5rem;">Aptitude & Logic</h3>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; line-height: 1.4;">
+                    Evaluates semantic traps, sequence patterns, and structural brain teasers.
+                </p>
+            </div>
+
+            <!-- Custom Subject Card -->
+            <div class="glass-panel subject-card" id="custom-subject-card" data-subject="custom">
+                <span class="subject-icon">✨</span>
+                <h3 style="margin-bottom: 0.5rem;">Custom Subject</h3>
+                <p id="custom-subject-desc" style="color: var(--text-secondary); font-size: 0.85rem; line-height: 1.4;">
+                    Type any custom subject to generate a dynamic test on the spot using AI.
+                </p>
+                <div id="custom-input-container" style="display: none; margin-top: 0.75rem;">
+                    <input type="text" id="custom-subject-name" placeholder="e.g. World History, Chemistry..." class="form-input" style="width: 100%; font-size: 0.9rem; padding: 0.5rem 0.75rem;">
+                </div>
+            </div>
+        </div>
+
+        <!-- Chapters / Topics Input -->
+        <div class="glass-panel" style="margin-top: 2rem; border-left: 4px solid var(--color-beginner);">
+            <h3 style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                📚 Focus Chapters / Topics
+            </h3>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem; line-height: 1.4;">
+                Enter specific chapters or topics you want to cover in this test (e.g., <em>Loops, Arrays, OOP</em>). Leave empty to cover the general subject.
+            </p>
+            <input type="text" name="chapters" placeholder="e.g. List Comprehensions, Lambda Functions..." class="form-input" style="width: 100%; padding: 0.85rem 1.1rem; font-size: 1rem;">
+        </div>
+
+        <div style="margin-top: 2.5rem; display: flex; justify-content: flex-end;">
+            <button type="submit" class="btn btn-primary" style="font-size: 1.1rem; padding: 1rem 2.5rem;">
+                Initiate Assessment 🚀
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const cards = document.querySelectorAll('.subject-card');
+    const input = document.getElementById('subject-input');
+    const customInputContainer = document.getElementById('custom-input-container');
+    const customSubjectName = document.getElementById('custom-subject-name');
+    
+    cards.forEach(card => {
+        card.addEventListener('click', (e) => {
+            // Prevent deselecting when typing inside the input field
+            if (e.target === customSubjectName) return;
+            
+            // Remove selected class from all
+            cards.forEach(c => c.classList.remove('selected'));
+            // Add to clicked
+            card.classList.add('selected');
+            
+            const subjectVal = card.getAttribute('data-subject');
+            if (subjectVal === 'custom') {
+                customInputContainer.style.display = 'block';
+                customSubjectName.focus();
+                input.value = customSubjectName.value.trim();
+            } else {
+                customInputContainer.style.display = 'none';
+                input.value = subjectVal;
+            }
+        });
+    });
+
+    customSubjectName.addEventListener('input', () => {
+        input.value = customSubjectName.value.trim();
+    });
+
+    // Prevent submission if custom subject is empty
+    const form = document.querySelector('form');
+    form.addEventListener('submit', (e) => {
+        const selected = document.querySelector('.subject-card.selected');
+        if (selected && selected.getAttribute('data-subject') === 'custom') {
+            const val = customSubjectName.value.trim();
+            if (!val) {
+                e.preventDefault();
+                alert('Please enter a custom subject name!');
+                customSubjectName.focus();
+            }
+        }
+    });
+</script>
+{% endblock %}

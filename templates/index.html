@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign In / Register{% endblock %}
+
+{% block content %}
+<div class="landing-grid">
+    <!-- Left Side: Product Showcase / Hero -->
+    <div class="hero-showcase">
+        <div class="logo-badge">
+            <span style="color: #f59e0b;">⚡</span> Metrilex Testing Engine
+        </div>
+        <h1 class="hero-title">
+            Elevate Your <span class="text-gradient">Understanding</span>
+        </h1>
+        <p class="hero-subtitle">
+            Experience modern cognitive assessments tailored to your studies. Target precise chapters, face progressive difficulty tiers, and analyze metrics instantly.
+        </p>
+        
+        <div class="feature-list">
+            <div class="feature-item">
+                <div class="feature-icon bg-cyan">📊</div>
+                <div>
+                    <h4>Multi-Stage Cognitive Progression</h4>
+                    <p>Evaluate recall with beginner queries, analyze concepts in intermediate stages, and challenge lateral logic via trick professional questions.</p>
+                </div>
+            </div>
+            
+            <div class="feature-item">
+                <div class="feature-icon bg-purple">📚</div>
+                <div>
+                    <h4>Chapter-Specific Scopes</h4>
+                    <p>Limit diagnostic scopes to exactly the chapters you select, creating highly localized and useful practice routines.</p>
+                </div>
+            </div>
+            
+            <div class="feature-item">
+                <div class="feature-icon bg-pink">📈</div>
+                <div>
+                    <h4>Interactive Data Breakdown</h4>
+                    <p>Check accuracy distributions on performance charts, and retrieve custom improvement tips on completed runs.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scroll down to auth form button for mobile stack -->
+        <div class="mobile-only" style="margin-top: 1.5rem;">
+            <a href="#auth-form" class="btn btn-primary" style="font-size: 1rem; padding: 0.8rem 2rem;">
+                Get Started &darr;
+            </a>
+        </div>
+    </div>
+
+    <!-- Right Side: Auth Form Panel -->
+    <div class="auth-card-container">
+        <div class="glass-panel auth-panel">
+            <h2 style="margin-bottom: 1.5rem; text-align: center; font-size: 1.5rem;" class="text-gradient">Student Registration</h2>
+
+            <form action="{{ url_for('login') }}" method="POST" id="auth-form">
+                <!-- Email -->
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" class="form-input" placeholder="student@example.com" required>
+                    <small id="email-hint" style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.25rem; line-height: 1.4; display: block;">
+                        Enter a valid email address. This will be your login credential.
+                    </small>
+                </div>
+
+                <!-- Registration Fields -->
+                <div id="registration-fields" style="display: flex; flex-direction: column;">
+                    <div class="form-group">
+                        <label for="name">Full Name</label>
+                        <input type="text" id="name" name="name" class="form-input" placeholder="John Doe" required>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label for="age">Age</label>
+                            <input type="number" id="age" name="age" class="form-input" placeholder="15" min="5" max="100" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="grade">Grade / Class</label>
+                            <input type="text" id="grade" name="grade" class="form-input" placeholder="Grade 10" required>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" id="submit-btn" class="btn btn-primary" style="width: 100%; margin-top: 1.5rem; font-size: 1.05rem;">
+                    Create Account & Begin &rarr;
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}

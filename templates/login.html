@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block title %}Log In{% endblock %}
+
+{% block content %}
+<div class="centered-container animate-fade">
+    <div class="logo-header">
+        <span style="color: #f59e0b; font-size: 2.2rem; filter: drop-shadow(0 0 12px rgba(245,158,11,0.5)); display: block; margin-bottom: 0.5rem; text-align: center;">⚡</span>
+        <h1 class="text-gradient" style="font-size: 2.2rem; font-weight: 800; margin-bottom: 0.5rem; text-align: center;">Student Login</h1>
+        <p style="color: var(--text-secondary); font-size: 0.95rem; text-align: center;">Enter your credentials to access your dashboard</p>
+    </div>
+
+    <div class="glass-panel auth-panel">
+        <form action="{{ url_for('login') }}" method="POST" id="auth-form">
+            <!-- Email -->
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" class="form-input" placeholder="student@example.com" required>
+                <small style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.25rem; line-height: 1.4; display: block;">
+                    Enter the email address you registered with.
+                </small>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1.5rem; font-size: 1.05rem;">
+                Log In &rarr;
+            </button>
+            
+            <div style="margin-top: 1.5rem; text-align: center; font-size: 0.88rem; color: var(--text-secondary);">
+                Don't have an account? 
+                <a href="{{ url_for('index') }}" style="color: #a855f7; text-decoration: none; font-weight: 600;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Register here</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

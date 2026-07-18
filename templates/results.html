@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+
+{% block title %}Assessment Results{% endblock %}
+
+{% block content %}
+<div class="animate-fade" style="display: flex; flex-direction: column; gap: 2rem;">
+    <!-- Results Header Summary -->
+    <div class="glass-panel results-header">
+        <div>
+            <span class="badge badge-completed" style="margin-bottom: 0.5rem;">Assessment Complete</span>
+            <h1 style="font-size: 2.2rem; font-weight: 800; margin-bottom: 0.25rem;">Report for <span class="text-gradient">{{ user.name }}</span></h1>
+            <p style="color: var(--text-secondary);">
+                Subject: <strong>{{ test.subject }}</strong>
+                {% if test.chapters %}
+                    | Focus Chapters: <strong>{{ test.chapters }}</strong>
+                {% endif %}
+                | Date: {{ test.created_at[:16].replace('T', ' ') }}
+            </p>
+        </div>
+        
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <div class="score-badge" style="background: rgba(139, 92, 246, 0.05); border-color: rgba(139, 92, 246, 0.25);">
+                <div style="font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; margin-bottom: 0.25rem;">Total Score</div>
+                <div style="font-size: 2.5rem; font-weight: 800; font-family: 'Outfit', sans-serif;" class="text-gradient">
+                    {{ test.score|round(0) }} <span style="font-size: 1.5rem; color: var(--text-secondary); font-weight: 500;">/ {{ test.max_score|round(0) }}</span>
+                </div>
+            </div>
+            
+            <div class="score-badge" style="background: rgba(56, 189, 248, 0.05); border-color: rgba(56, 189, 248, 0.25);">
+                <div style="font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; margin-bottom: 0.25rem;">Accuracy</div>
+                <div style="font-size: 2.5rem; font-weight: 800; font-family: 'Outfit', sans-serif; color: var(--color-beginner);">
+                    {% if test.max_score > 0 %}
+                        {{ ((test.score / test.max_score) * 100)|round(1) }}%
+                    {% else %}
+                        0%
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stage Score Cards & Analysis Chart -->
+    <div class="results-grid-layout">
+        
+        <!-- Left Side: Stage Cards and Chart -->
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <!-- Stage scores -->
+            <div class="stage-results-grid">
+                <div class="glass-panel stage-summary-card beg">
+                    <div class="stat-label">Stage 1: Beginner</div>
+                    <div class="stat-value" style="color: var(--color-beginner);">{{ analysis.beginner_correct }} / {{ analysis.beginner_total }}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                        {% if analysis.beginner_total > 0 %}
+                            {{ ((analysis.beginner_correct / analysis.beginner_total) * 100)|round(0) }}% accuracy
+                        {% else %}
+                            0% accuracy
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="glass-panel stage-summary-card int">
+                    <div class="stat-label">Stage 2: Intermediate</div>
+                    <div class="stat-value" style="color: var(--color-intermediate);">{{ analysis.intermediate_correct }} / {{ analysis.intermediate_total }}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                        {% if analysis.intermediate_total > 0 %}
+                            {{ ((analysis.intermediate_correct / analysis.intermediate_total) * 100)|round(0) }}% accuracy
+                        {% else %}
+                            0% accuracy
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="glass-panel stage-summary-card prof">
+                    <div class="stat-label">Stage 3: Professional</div>
+                    <div class="stat-value" style="color: var(--color-professional);">{{ analysis.professional_correct }} / {{ analysis.professional_total }}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                        {% if analysis.professional_total > 0 %}
+                            {{ ((analysis.professional_correct / analysis.professional_total) * 100)|round(0) }}% accuracy
+                        {% else %}
+                            0% accuracy
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Matplotlib Chart -->
+            {% if analysis.chart_image_path %}
+                <div class="glass-panel" style="text-align: center; overflow: hidden; padding: 1.5rem;">
+                    <h3 style="font-size: 1.2rem; margin-bottom: 1rem; text-align: left;">Python Matplotlib Visualization</h3>
+                    <img src="{{ analysis.chart_image_path }}" alt="Performance Chart" style="max-width: 100%; border-radius: 10px; border: 1px solid var(--border-color); box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Right Side: Feedback & Insights -->
+        <div class="glass-panel insight-container" style="display: flex; flex-direction: column; gap: 1.5rem; height: 100%; border: 1.5px solid rgba(139, 92, 246, 0.2);">
+            <div>
+                <h3 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>🤖</span> Diagnostic & Insights
+                </h3>
+                {% if using_api_key %}
+                    <span class="badge" style="background: rgba(16, 185, 129, 0.1); color: #34d399; font-size: 0.65rem;">Live Feedback</span>
+                {% else %}
+                    <span class="badge" style="background: rgba(255, 255, 255, 0.05); color: var(--text-secondary); font-size: 0.65rem;">Local Heuristic Feedback</span>
+                {% endif %}
+            </div>
+            
+            <div>
+                <h4 style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px; margin-bottom: 0.5rem;">Psychologist Summary</h4>
+                <div style="line-height: 1.6; font-size: 0.98rem; color: #f1f5f9; white-space: pre-wrap;">{{ analysis.ai_feedback }}</div>
+            </div>
+
+            <div style="border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+                <h4 style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px; margin-bottom: 0.5rem;">Study Strategy Recommendations</h4>
+                <div class="insight-tips-list">
+                    {% for tip in tips %}
+                        <div class="insight-tip-item">
+                            <div class="insight-tip-bullet">{{ loop.index }}</div>
+                            <div>{{ tip }}</div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Question Review -->
+    <div class="glass-panel">
+        <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem;">Detailed Question Review</h2>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem; line-height: 1.4;">
+            Review your answers below. Reviewing the Professional stage explanations is highly recommended to understand the logical loops and trick formulations.
+        </p>
+
+        {% for q in questions %}
+            <div class="question-review-item {% if q.is_correct %}correct{% else %}incorrect{% endif %}">
+                <!-- Question Header -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 1.2rem;">
+                            {% if q.is_correct %}
+                                🟢
+                            {% else %}
+                                🔴
+                            {% endif %}
+                        </span>
+                        <strong style="font-size: 0.95rem;">Question {{ loop.index }}</strong>
+                        <span class="badge" style="font-size: 0.7rem; background: rgba(255,255,255,0.03); color: var(--text-secondary);">
+                            {{ q.stage|capitalize }}
+                        </span>
+                    </div>
+                    <div>
+                        {% if q.is_correct %}
+                            <span style="color: var(--color-success); font-weight: 700; font-size: 0.85rem; text-transform: uppercase;">Correct (+1)</span>
+                        {% else %}
+                            <span style="color: var(--color-error); font-weight: 700; font-size: 0.85rem; text-transform: uppercase;">Incorrect (+0)</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Question Text -->
+                <p style="font-size: 1.05rem; line-height: 1.5; color: var(--text-primary); margin-bottom: 1rem;">
+                    {{ q.question_text }}
+                </p>
+
+                <!-- Options Review Grid -->
+                <div class="review-answers-grid">
+                    <div class="review-answer-pill {% if q.correct_option == 'A' %}correct{% elif q.student_answer == 'A' %}incorrect{% endif %}">
+                        <strong>A:</strong> {{ q.option_a }}
+                    </div>
+                    <div class="review-answer-pill {% if q.correct_option == 'B' %}correct{% elif q.student_answer == 'B' %}incorrect{% endif %}">
+                        <strong>B:</strong> {{ q.option_b }}
+                    </div>
+                    <div class="review-answer-pill {% if q.correct_option == 'C' %}correct{% elif q.student_answer == 'C' %}incorrect{% endif %}">
+                        <strong>C:</strong> {{ q.option_c }}
+                    </div>
+                    <div class="review-answer-pill {% if q.correct_option == 'D' %}correct{% elif q.student_answer == 'D' %}incorrect{% endif %}">
+                        <strong>D:</strong> {{ q.option_d }}
+                    </div>
+                </div>
+
+                <div style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                    <div>Your Answer: <strong class="{% if q.is_correct %}text-success{% else %}text-error{% endif %}">{{ q.student_answer or 'Skipped' }}</strong></div>
+                    <div>Correct Answer: <strong class="text-success">{{ q.correct_option }}</strong></div>
+                </div>
+
+                <!-- Trick / Solution Box -->
+                {% if q.trick_explanation %}
+                    <div class="trick-box">
+                        <strong>
+                            {% if q.stage == 'professional' %}
+                                💡 The Trick Explained:
+                            {% else %}
+                                📖 Explanation:
+                            {% endif %}
+                        </strong> 
+                        {{ q.trick_explanation }}
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Back to Dashboard CTA -->
+    <div style="display: flex; justify-content: center; gap: 1rem; margin-bottom: 2rem;">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-primary" style="padding: 1rem 2.5rem;">
+            Return to Student Dashboard &rarr;
+        </a>
+    </div>
+</div>
+{% endblock %}
