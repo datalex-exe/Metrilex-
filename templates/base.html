@@ -21,6 +21,8 @@
             {% if session.get('user_id') %}
             <a href="{{ url_for('dashboard') }}"
                 class="nav-link {% if request.path == url_for('dashboard') %}active{% endif %}">Dashboard</a>
+            <a href="{{ url_for('settings') }}"
+                class="nav-link {% if request.path == url_for('settings') %}active{% endif %}">Settings</a>
             <a href="{{ url_for('setup_test') }}"
                 class="nav-link {% if request.path == url_for('setup_test') %}active{% endif %}">New Test</a>
             <div style="display: flex; align-items: center; gap: 0.75rem; padding-left: 0.5rem; border-left: 1px solid var(--border-color); margin-left: 0.5rem;">
@@ -70,7 +72,7 @@
     <footer>
         <div style="border-top: 1px solid var(--border-color); margin-top: 5rem; padding-top: 2.5rem; padding-bottom: 2.5rem; text-align: center; font-size: 0.85rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.75rem;">
             <div>
-                &copy; <strong>Metrilex</strong>. All Rights Reserved by <strong>Datalex</strong>.
+                &copy; 2026 <strong>Metrilex</strong>. All Rights Reserved by <strong>Datalex</strong>.
             </div>
             <div style="display: flex; justify-content: center; gap: 1.5rem; font-weight: 500;">
                 <a href="#" style="color: var(--text-secondary); text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Privacy Policy</a>
