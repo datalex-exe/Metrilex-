@@ -1,0 +1,5 @@
+.env
+*.db
+scratch/
+__pycache__/
+*.pyc
