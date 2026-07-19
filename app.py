@@ -13,12 +13,20 @@ app.secret_key = 'antigravity-secret-key-9988776655'
 db_helper.init_db()
 
 def get_api_key():
-    # 1. Try environment variable
+    # 1. Try SQLite DB configuration first (allows overriding env/placeholder defaults)
+    try:
+        db_key = db_helper.get_setting('gemini_api_key', '')
+        if db_key:
+            return db_key.strip()
+    except Exception:
+        pass
+
+    # 2. Try environment variable
     key = os.environ.get('GEMINI_API_KEY')
     if key:
         return key.strip()
     
-    # 2. Try reading from .env file in project directory
+    # 3. Try reading from .env file in project directory
     env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
     if os.path.exists(env_path):
         try:
@@ -31,8 +39,7 @@ def get_api_key():
         except Exception:
             pass
             
-    # 3. Fallback to SQLite DB configuration
-    return db_helper.get_setting('gemini_api_key', '')
+    return ''
 
 @app.route('/')
 def index():
@@ -122,8 +129,18 @@ def dashboard():
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
-    # Redirect students to dashboard; settings page is deprecated
-    return redirect(url_for('dashboard'))
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+        
+    if request.method == 'POST':
+        key = request.form.get('gemini_api_key', '').strip()
+        db_helper.set_setting('gemini_api_key', key)
+        flash('API configuration updated successfully!', 'success')
+        return redirect(url_for('settings'))
+        
+    api_key = get_api_key()
+    api_configured = bool(api_key)
+    return render_template('settings.html', api_configured=api_configured)
 
 @app.route('/test/setup', methods=['GET', 'POST'])
 def setup_test():
