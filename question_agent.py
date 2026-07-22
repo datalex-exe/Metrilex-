@@ -7,15 +7,35 @@ def normalize_text(text):
         return ""
     return re.sub(r'[^a-zA-Z0-9]', '', text).strip().lower()
 
+def extract_correct_option(option_val):
+    if not option_val:
+        return "A"
+    val = str(option_val).strip().upper()
+    if val in ["A", "B", "C", "D"]:
+        return val
+    # Check if the string contains a standalone A, B, C, or D
+    import re
+    match = re.search(r'\b([A-D])\b', val)
+    if match:
+        return match.group(1)
+    # Check if it mentions Option A, Option B, etc.
+    for ch in ["A", "B", "C", "D"]:
+        if f"OPTION_{ch}" in val or f"OPTION {ch}" in val:
+            return ch
+    # Fallback to the first letter if it's alphanumeric and in A-D
+    if len(val) > 0 and val[0] in ["A", "B", "C", "D"]:
+        return val[0]
+    return "A"
+
 def generate_questions(subject, api_key, exclude_questions=None, chapters=None):
     """
     Question Generator Agent:
-    Connects to the Gemini API to dynamically generate 30 multiple-choice questions
-    (10 beginner, 10 intermediate, 10 professional trick questions) for a given subject.
+    Connects to the Groq API to dynamically generate 30 multiple-choice questions
+    (10 beginner, 10 intermediate, 10 professional/advanced questions) for a given subject.
     Optionally avoids generating questions in exclude_questions and focuses on specific chapters.
     """
     if not api_key:
-        raise ValueError("A Gemini API Key is required to generate questions. Offline mode is disabled.")
+        raise ValueError("A Groq API Key is required to generate questions. Offline mode is disabled.")
         
     try:
         stages = ["beginner", "intermediate", "professional"]
@@ -26,16 +46,26 @@ def generate_questions(subject, api_key, exclude_questions=None, chapters=None):
         
         for stage in stages:
             if stage == "beginner":
-                prompt_desc = "standard, straightforward, foundational concepts."
+                prompt_desc = (
+                    "foundational concepts, testing core definitions, basic syntax, and standard terminology "
+                    "of the subject. Avoid any ambiguity; the question must be straightforward but academic and precise."
+                )
             elif stage == "intermediate":
-                prompt_desc = "conceptually deeper, requiring multi-step reasoning or application."
+                prompt_desc = (
+                    "conceptually deeper, requiring multi-step reasoning, practical code debugging, "
+                    "or analytical application of principles to scenarios. These should be challenging, practical questions."
+                )
             else:
-                # Professional stage: trick questions
-                prompt_desc = "TRICK questions. The question should have subtle wording, a logical twist, or common misconceptions. Make sure it requires lateral thinking."
+                prompt_desc = (
+                    "highly advanced, professional-grade questions. Focus on complex edge cases, optimization, "
+                    "advanced architecture/design patterns, internals, and deep nuances of the subject. These questions "
+                    "must test the boundaries of true expertise. Do NOT include general logic puzzles, lateral thinking "
+                    "riddles, or trick wording that relies on grammatical traps; they must be strictly, deeply technical."
+                )
 
             exclude_instruction = ""
             if exclude_questions:
-                # Format a bullet list of previously asked questions to send to Gemini
+                # Format a bullet list of previously asked questions to send to Groq
                 exclude_instruction = "\nCRITICAL: Do NOT generate any of the following questions or questions that are highly similar to them:\n" + "\n".join(f"- {q}" for q in exclude_questions)
 
             chapters_instruction = ""
@@ -48,16 +78,20 @@ def generate_questions(subject, api_key, exclude_questions=None, chapters=None):
             Style of questions: {prompt_desc}
             {exclude_instruction}
             
-            Return the result in JSON format as a list of 10 objects. Each object MUST have the following keys:
+            Return the result in JSON format as a JSON object with a single key "questions" whose value is a list of exactly 10 question objects.
+            Each question object MUST have the following keys:
             - "question": string (the question text)
             - "option_a": string (Option A)
             - "option_b": string (Option B)
             - "option_c": string (Option C)
             - "option_d": string (Option D)
-            - "correct_option": string (must be exactly 'A', 'B', 'C', or 'D')
-            - "trick_explanation": string (explaining the solution, reasoning, and specifically highlighting any trick or twist involved)
+            - "correct_option": string (must be exactly 'A', 'B', 'C', or 'D' corresponding to the correct answer)
+            - "trick_explanation": string (explaining the solution, reasoning, and specifically highlighting why the correct option is correct and why others are incorrect)
             
-            Do not wrap in anything else except a valid JSON array. Do not output markdown indicators around JSON like ```json.
+            CRITICAL ACCURACY REQUIREMENT:
+            - Every question must be technically and factually accurate.
+            - There must be exactly one correct option. The other three options must be plausible but objectively incorrect.
+            - Double-check that 'correct_option' corresponds to the option that is actually correct.
             """
             
             stage_questions = []
@@ -65,37 +99,42 @@ def generate_questions(subject, api_key, exclude_questions=None, chapters=None):
             
             for attempt in range(3):
                 try:
-                    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key={api_key}"
-                    headers = {"Content-Type": "application/json"}
+                    url = "https://api.groq.com/openai/v1/chat/completions"
+                    headers = {
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json"
+                    }
                     data = {
-                        "contents": [{"parts": [{"text": prompt}]}],
-                        "generationConfig": {
-                            "responseMimeType": "application/json",
-                            "temperature": 0.8 + (attempt * 0.1)  # slightly higher temp on retry
-                        }
+                        "model": "llama-3.3-70b-versatile",
+                        "messages": [
+                            {"role": "user", "content": prompt}
+                        ],
+                        "response_format": {"type": "json_object"},
+                        "temperature": 0.2 + (attempt * 0.1)
                     }
                     
-                    response = requests.post(url, headers=headers, json=data, timeout=15)
+                    response = requests.post(url, headers=headers, json=data, timeout=20)
                     response.raise_for_status()
                     
                     res_json = response.json()
-                    text_response = res_json['candidates'][0]['content']['parts'][0]['text']
+                    text_response = res_json['choices'][0]['message']['content']
                     
-                    # Clean and extract JSON array safely to handle 'Extra data' or markdown wrappers
+                    # Clean and extract JSON object safely
                     text_clean = text_response.strip()
-                    if text_clean.startswith("```"):
-                        first_newline = text_clean.find("\n")
-                        if first_newline != -1:
-                            text_clean = text_clean[first_newline:].strip()
-                        if text_clean.endswith("```"):
-                            text_clean = text_clean[:-3].strip()
+                    parsed_res = json.loads(text_clean)
+                    
+                    # Extract questions list
+                    parsed_questions = []
+                    if isinstance(parsed_res, list):
+                        parsed_questions = parsed_res
+                    elif isinstance(parsed_res, dict):
+                        if "questions" in parsed_res:
+                            parsed_questions = parsed_res["questions"]
+                        elif len(parsed_res) == 1:
+                            val = list(parsed_res.values())[0]
+                            if isinstance(val, list):
+                                parsed_questions = val
                             
-                    start = text_clean.find('[')
-                    end = text_clean.rfind(']')
-                    if start != -1 and end != -1 and end > start:
-                        text_clean = text_clean[start:end+1]
-                        
-                    parsed_questions = json.loads(text_clean)
                     last_parsed = parsed_questions
                     
                     valid_questions = []
@@ -106,10 +145,7 @@ def generate_questions(subject, api_key, exclude_questions=None, chapters=None):
                             if key not in q:
                                 q[key] = "Value missing"
                         
-                        q["correct_option"] = q["correct_option"].strip().upper()
-                        if q["correct_option"] not in ["A", "B", "C", "D"]:
-                            q["correct_option"] = "A"
-                            
+                        q["correct_option"] = extract_correct_option(q["correct_option"])
                         q["stage"] = stage
                         
                         q_text = q.get("question", "")
@@ -134,16 +170,12 @@ def generate_questions(subject, api_key, exclude_questions=None, chapters=None):
             # Fallback if retry loop didn't succeed in finding 10 unique questions
             if not stage_questions:
                 if last_parsed:
-                    # Fallback to the parsed questions from the last attempt (even if some might be duplicates)
-                    # to keep the app operational
                     print(f"[Fallback] Using last parsed batch for stage {stage} due to duplicate or API issues.")
                     for q in last_parsed:
                         for key in ["question", "option_a", "option_b", "option_c", "option_d", "correct_option", "trick_explanation"]:
                             if key not in q:
                                 q[key] = "Value missing"
-                        q["correct_option"] = q["correct_option"].strip().upper()
-                        if q["correct_option"] not in ["A", "B", "C", "D"]:
-                            q["correct_option"] = "A"
+                        q["correct_option"] = extract_correct_option(q["correct_option"])
                         q["stage"] = stage
                         stage_questions.append(q)
                     stage_questions = stage_questions[:10]
@@ -155,7 +187,9 @@ def generate_questions(subject, api_key, exclude_questions=None, chapters=None):
         if len(questions) == 30:
             return questions
         else:
-            raise ValueError(f"Gemini returned {len(questions)} questions instead of the required 30.")
+            raise ValueError(f"Groq returned {len(questions)} questions instead of the required 30.")
             
     except Exception as e:
         raise Exception(f"AI Question Generation failed: {str(e)}")
+
+
