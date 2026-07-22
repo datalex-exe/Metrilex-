@@ -14,7 +14,7 @@ def generate_performance_chart(test_id, beg_correct, beg_total, int_correct, int
     
     # Modern styling
     plt.style.use('dark_background')
-    fig, ax = plt.subplots(figsize=(7, 4.5), dpi=150)
+    fig, ax = plt.subplots(figsize=(6.5, 4.2), dpi=90)
     
     # Set background color properties to match glassmorphism / dark theme
     fig.patch.set_facecolor('#0f172a') # Slate 900
