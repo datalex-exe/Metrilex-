@@ -56,36 +56,27 @@ def generate_global_insights(user_name, tests_summary, api_key=None):
             Return ONLY the valid JSON object. No markdown wrappers.
             """
             
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key={api_key}"
-            headers = {"Content-Type": "application/json"}
+            url = "https://api.groq.com/openai/v1/chat/completions"
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
             data = {
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {
-                    "responseMimeType": "application/json",
-                    "temperature": 0.6
-                }
+                "model": "llama-3.3-70b-versatile",
+                "messages": [
+                    {"role": "user", "content": prompt}
+                ],
+                "response_format": {"type": "json_object"},
+                "temperature": 0.4
             }
             
             response = requests.post(url, headers=headers, json=data, timeout=12)
             response.raise_for_status()
             
             res_json = response.json()
-            text_response = res_json['candidates'][0]['content']['parts'][0]['text']
+            text_response = res_json['choices'][0]['message']['content']
             
-            # Clean and extract JSON object safely to handle 'Extra data' or markdown wrappers
             text_clean = text_response.strip()
-            if text_clean.startswith("```"):
-                first_newline = text_clean.find("\n")
-                if first_newline != -1:
-                    text_clean = text_clean[first_newline:].strip()
-                if text_clean.endswith("```"):
-                    text_clean = text_clean[:-3].strip()
-                    
-            start = text_clean.find('{')
-            end = text_clean.rfind('}')
-            if start != -1 and end != -1 and end > start:
-                text_clean = text_clean[start:end+1]
-                
             parsed_insights = json.loads(text_clean)
             
             return parsed_insights
