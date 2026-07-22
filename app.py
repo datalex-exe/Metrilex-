@@ -5,6 +5,7 @@ import db_helper
 import chart_generator
 import question_agent
 import analysis_agent
+import email_helper
 
 app = Flask(__name__)
 app.secret_key = 'antigravity-secret-key-9988776655'
@@ -15,14 +16,14 @@ db_helper.init_db()
 def get_api_key():
     # 1. Try SQLite DB configuration first (allows overriding env/placeholder defaults)
     try:
-        db_key = db_helper.get_setting('gemini_api_key', '')
+        db_key = db_helper.get_setting('groq_api_key', '')
         if db_key:
             return db_key.strip()
     except Exception:
         pass
 
     # 2. Try environment variable
-    key = os.environ.get('GEMINI_API_KEY')
+    key = os.environ.get('GROQ_API_KEY')
     if key:
         return key.strip()
     
@@ -34,7 +35,7 @@ def get_api_key():
                 for line in f:
                     if line.strip() and not line.startswith('#'):
                         parts = line.strip().split('=', 1)
-                        if len(parts) == 2 and parts[0].strip() == 'GEMINI_API_KEY':
+                        if len(parts) == 2 and parts[0].strip() == 'GROQ_API_KEY':
                             return parts[1].strip().strip('"').strip("'")
         except Exception:
             pass
@@ -133,8 +134,8 @@ def settings():
         return redirect(url_for('login'))
         
     if request.method == 'POST':
-        key = request.form.get('gemini_api_key', '').strip()
-        db_helper.set_setting('gemini_api_key', key)
+        key = request.form.get('groq_api_key', '').strip()
+        db_helper.set_setting('groq_api_key', key)
         flash('API configuration updated successfully!', 'success')
         return redirect(url_for('settings'))
         
@@ -167,7 +168,7 @@ def setup_test():
         try:
             # Fetch previously asked questions for this user and subject to exclude duplicates
             previous_questions = db_helper.get_user_previous_questions(user_id, subject)
-            # Generate 30 questions on the spot using Gemini API, excluding duplicates and focusing on chapters
+            # Generate 30 questions on the spot using Groq API, excluding duplicates and focusing on chapters
             questions = question_agent.generate_questions(
                 subject, api_key, exclude_questions=previous_questions, chapters=chapters if chapters else None
             )
@@ -198,7 +199,10 @@ def take_test(test_id):
         
     questions = db_helper.get_test_questions(test_id)
     
-    return render_template('test.html', test=test, questions=questions)
+    user_row = db_helper.get_user_by_id(session['user_id'])
+    user = dict(user_row) if user_row else None
+    
+    return render_template('test.html', test=test, questions=questions, user=user)
 
 @app.route('/test/<int:test_id>/submit', methods=['POST'])
 def submit_test(test_id):
@@ -277,8 +281,25 @@ def submit_test(test_id):
         chart_path, feedback, tips_json
     )
     
+    user_row = db_helper.get_user_by_id(session['user_id'])
+    user = dict(user_row) if user_row else None
+    email_str = user['email'] if user else 'your registered email'
+    
+    # Trigger background email delivery of results
+    if user and user.get('email'):
+        email_helper.send_results_email_async(
+            user['email'], 
+            user['name'], 
+            test['subject'], 
+            total_score, 
+            len(questions), 
+            feedback, 
+            tips, 
+            chart_path
+        )
+        
     session.pop('global_insight', None)
-    flash('Assessment submitted successfully! Review your analysis below.', 'success')
+    flash(f'Assessment submitted successfully! Review your analysis below. The results will be sent to your registered email: {email_str}.', 'success')
     return redirect(url_for('test_results', test_id=test_id))
 
 @app.route('/test/<int:test_id>/results')
