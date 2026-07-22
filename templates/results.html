@@ -16,6 +16,10 @@
                 {% endif %}
                 | Date: {{ test.created_at[:16].replace('T', ' ') }}
             </p>
+            <div style="margin-top: 1rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); padding: 0.6rem 1rem; border-radius: 8px; width: fit-content; color: #34d399;">
+                <span style="font-size: 1.1rem; line-height: 1;">📧</span>
+                <span>The results will be sent to your registered email: <strong>{{ user.email }}</strong>.</span>
+            </div>
         </div>
         
         <div style="display: flex; gap: 1rem; align-items: center;">
